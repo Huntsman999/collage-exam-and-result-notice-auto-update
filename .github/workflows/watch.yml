@@ -14,7 +14,7 @@ jobs:
           python-version: '3.11'
       - run: |
           pip install requests beautifulsoup4 python-dotenv
-          python 9f6302e0-3275-466a-beaf-fa6449a886d3.py
+         python watch_notice.py
         env:
           WATCH_URL: ${{ secrets.WATCH_URL }}
           TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
