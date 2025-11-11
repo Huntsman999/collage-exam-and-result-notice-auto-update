@@ -1,0 +1,21 @@
+name: simple-bot
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # runs every 15 minutes
+  workflow_dispatch:          # lets you run it manually
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Python script
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: |
+          pip install requests beautifulsoup4 python-dotenv
+          python 9f6302e0-3275-466a-beaf-fa6449a886d3.py
+        env:
+          WATCH_URL: ${{ secrets.WATCH_URL }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
