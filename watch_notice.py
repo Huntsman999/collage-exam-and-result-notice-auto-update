@@ -15,7 +15,8 @@ TG_CHAT = os.getenv("TG_CHAT_ID")
 def fetch_text():
     """Fetch notice page text."""
     try:
-        r = requests.get(URL, timeout=30)
+     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"}
+r = requests.get(URL, headers=headers, timeout=20)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         return soup.get_text(separator="\n").strip()
