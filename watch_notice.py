@@ -4,7 +4,7 @@ import hashlib
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-# Load secrets (from GitHub or .env)
+# Load secrets
 load_dotenv()
 
 URL = os.getenv("WATCH_URL")
@@ -13,16 +13,24 @@ TG_TOKEN = os.getenv("TG_BOT_TOKEN")
 TG_CHAT = os.getenv("TG_CHAT_ID")
 
 def fetch_text():
-    """Fetch notice page text with browser-like headers."""
+    """Fetch notice page text with safe headers and retry logic."""
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/120.0 Safari/537.36"
-        )
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
     }
     try:
+        # First try normally
         r = requests.get(URL, headers=headers, timeout=30)
+        if r.status_code == 403:
+            # Try again with a fake referrer to bypass filter
+            headers["Referer"] = "https://www.google.com/"
+            r = requests.get(URL, headers=headers, timeout=30)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         return soup.get_text(separator="\n").strip()
@@ -34,19 +42,16 @@ def compute_hash(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 def read_last():
-    """Read last known hash from file."""
     if os.path.exists(HASH_FILE):
         with open(HASH_FILE, "r") as f:
             return f.read().strip()
     return ""
 
 def write_last(h):
-    """Write new hash to file."""
     with open(HASH_FILE, "w") as f:
         f.write(h)
 
 def send_telegram(msg):
-    """Send Telegram message using bot token."""
     if not TG_TOKEN or not TG_CHAT:
         print("⚠️ Missing Telegram config.")
         return
