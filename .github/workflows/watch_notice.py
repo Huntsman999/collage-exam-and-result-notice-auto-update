@@ -1,0 +1,73 @@
+import os
+import requests
+import hashlib
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
+# Load secrets (from GitHub or .env)
+load_dotenv()
+
+URL = os.getenv("WATCH_URL")
+HASH_FILE = "last_hash.txt"
+TG_TOKEN = os.getenv("TG_BOT_TOKEN")
+TG_CHAT = os.getenv("TG_CHAT_ID")
+
+def fetch_text():
+    """Fetch notice page text."""
+    try:
+        r = requests.get(URL, timeout=30)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        return soup.get_text(separator="\n").strip()
+    except Exception as e:
+        print("⚠️ Error fetching page:", e)
+        return ""
+
+def compute_hash(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+def read_last():
+    """Read last known hash from file."""
+    if os.path.exists(HASH_FILE):
+        with open(HASH_FILE, "r") as f:
+            return f.read().strip()
+    return ""
+
+def write_last(h):
+    """Write new hash to file."""
+    with open(HASH_FILE, "w") as f:
+        f.write(h)
+
+def send_telegram(msg):
+    """Send Telegram message using bot token."""
+    if not TG_TOKEN or not TG_CHAT:
+        print("⚠️ Missing Telegram config.")
+        return
+    try:
+        url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
+        requests.post(url, data={"chat_id": TG_CHAT, "text": msg}, timeout=10)
+        print("✅ Telegram message sent.")
+    except Exception as e:
+        print("⚠️ Telegram send failed:", e)
+
+def main():
+    print("🔍 Checking for updates...")
+    text = fetch_text()
+    if not text:
+        print("⚠️ No content fetched. Exiting.")
+        return
+
+    new_hash = compute_hash(text)
+    old_hash = read_last()
+
+    if new_hash != old_hash:
+        snippet = text[:500].replace("\n", " ").strip()
+        message = f"📢 Notice page updated:\n{URL}\n\n{snippet}"
+        send_telegram(message)
+        write_last(new_hash)
+        print("✅ Change detected and notified.")
+    else:
+        print("ℹ️ No change detected.")
+
+if __name__ == "__main__":
+    main()
